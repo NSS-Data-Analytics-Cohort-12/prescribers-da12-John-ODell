@@ -1,6 +1,16 @@
 
 -- 1. 
 --     a. Which prescriber had the highest total number of claims (totaled over all drugs)? Report the npi and the total number of claims.
+SELECT prescriber.nppes_provider_last_org_name AS last_name,
+	prescriber.nppes_provider_first_name AS first_name,
+	--prescriber.npi AS dr_npi,
+	COUNT(prescription.total_claim_count) AS total_claims
+FROM prescriber
+LEFT JOIN prescription
+ON prescriber.npi = prescription.npi
+GROUP BY last_name,	first_name--, dr_npi
+ORDER BY total_claims DESC
+LIMIT 1;
     
 --     b. Repeat the above, but this time report the nppes_provider_first_name, nppes_provider_last_org_name,  specialty_description, and the total number of claims.
 SELECT prescriber.nppes_provider_last_org_name AS last_name,
@@ -14,7 +24,16 @@ GROUP BY last_name,	first_name, specialty
 ORDER BY total_claims DESC
 -- 2. 
 --     a. Which specialty had the most total number of claims (totaled over all drugs)?
-
+SELECT 
+    prescriber.specialty_description AS specialty,
+    SUM(prescription.total_claim_count) AS total_claims
+FROM prescriber
+LEFT JOIN prescription
+USING (npi)
+WHERE prescription.total_claim_count IS NOT NULL
+GROUP BY specialty
+ORDER BY total_claims DESC
+LIMIT 1;
 --     b. Which specialty had the most total number of claims for opioids?
 SELECT 
     prescriber.specialty_description AS specialty,
@@ -133,9 +152,27 @@ FROM prescription
 WHERE prescription.total_claim_count >= 3000
 
 --     b. For each instance that you found in part a, add a column that indicates whether the drug is an opioid.
-
+SELECT prescription.drug_name AS med_name,
+	prescription.total_claim_count AS total_claims,
+	drug.opioid_drug_flag AS opioite
+FROM prescription
+JOIN drug
+USING (drug_name)
+WHERE prescription.total_claim_count >= 3000
+	AND drug.opioid_drug_flag = 'Y'
 --     c. Add another column to you answer from the previous part which gives the prescriber first and last name associated with each row.
-
+SELECT prescription.drug_name AS med_name,
+	prescription.total_claim_count AS total_claims,
+	drug.opioid_drug_flag AS opioite,
+	prescriber.nppes_provider_first_name AS first_name,
+	prescriber.nppes_provider_last_org_name AS last_name
+FROM prescription
+JOIN drug
+ON drug.drug_name = prescription.drug_name
+JOIN prescriber
+ON prescriber.npi = prescription.npi
+WHERE prescription.total_claim_count >= 3000
+	AND drug.opioid_drug_flag = 'Y'
 -- 7. The goal of this exercise is to generate a full list of all pain management specialists in Nashville and the number of claims they had for each opioid. **Hint:** The results from all 3 parts will have 637 rows.
 
 --     a. First, create a list of all npi/drug_name combinations for pain management specialists (specialty_description = 'Pain Management) in the city of Nashville (nppes_provider_city = 'NASHVILLE'), where the drug is an opioid (opiod_drug_flag = 'Y'). **Warning:** Double-check your query before running it. You will only need to use the prescriber and drug tables since you don't need the claims numbers yet.
